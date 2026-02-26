@@ -85,3 +85,8 @@ Return format:
     except Exception as e:
 
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/comment/code-interpreter", response_model=SentimentResponse)
+async def analyze_comment_ci(data: CommentRequest):
+    return await analyze_comment(data)
+
