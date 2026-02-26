@@ -16,7 +16,7 @@ app.add_middleware(
 )
 
 # ⚠️ HARDCODED TOKEN (rotate after assignment)
-AIPIPE_TOKEN = "YOUR_TOKEN_HERE"
+AIPIPE_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjIyZjMwMDI5ODdAZHMuc3R1ZHkuaWl0bS5hYy5pbiJ9.0ByYJrCcZMkknLE0YWztzn37XUbr3Q5OKu_4P_EM4jQ"
 
 
 # ---------- Response Model ----------
@@ -91,3 +91,4 @@ async def analyze_comment(data: dict = Body(...)):
 @app.post("/comment/code-interpreter", response_model=SentimentResponse)
 async def analyze_comment_ci(data: dict = Body(...)):
     return await process_text(data)
+
