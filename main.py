@@ -32,6 +32,11 @@ class SentimentResponse(BaseModel):
 @app.post("/comment", response_model=SentimentResponse)
 async def analyze_comment(data: CommentRequest):
     try:
+        # ✅ Accept both fields
+        text = data.comment or data.code
+        if not text:
+            raise HTTPException(status_code=400, detail="No input provided")
+
         url = "https://aipipe.org/openrouter/v1/responses"
 
         payload = {
@@ -39,7 +44,7 @@ async def analyze_comment(data: CommentRequest):
             "input": f"""
 Analyze the sentiment of this comment and return ONLY valid JSON.
 
-Comment: {data.comment}
+Comment: {text}
 
 Return format:
 {{
@@ -61,9 +66,7 @@ Return format:
 
         response_json = r.json()
 
-        # 🔎 Safely extract model output text
         output_text = None
-
         if "output" in response_json:
             for item in response_json["output"]:
                 if "content" in item:
@@ -72,21 +75,16 @@ Return format:
                             output_text = c.get("text")
 
         if not output_text:
-            raise HTTPException(status_code=500, detail="No text output from model")
+            raise HTTPException(status_code=500, detail="No text output")
 
-        # 🔎 Parse JSON safely
-        try:
-            result = json.loads(output_text)
-        except:
-            raise HTTPException(status_code=500, detail=f"Invalid JSON returned: {output_text}")
-
+        result = json.loads(output_text)
         return result
 
     except Exception as e:
-
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/comment/code-interpreter", response_model=SentimentResponse)
 async def analyze_comment_ci(data: CommentRequest):
     return await analyze_comment(data)
+
 
