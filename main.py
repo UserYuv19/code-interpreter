@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from fastapi.middleware.cors import CORSMiddleware
 import requests
 import json
 
@@ -82,4 +83,5 @@ Return format:
         return result
 
     except Exception as e:
+
         raise HTTPException(status_code=500, detail=str(e))
