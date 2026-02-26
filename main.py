@@ -1,11 +1,12 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import FastAPI, HTTPException, Body
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 import json
 
 app = FastAPI()
 
+# ✅ Enable CORS (required by evaluator)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,13 +15,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ HARDCODED AI PIPE TOKEN (as you requested)
-AIPIPE_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjIyZjMwMDI5ODdAZHMuc3R1ZHkuaWl0bS5hYy5pbiJ9.0ByYJrCcZMkknLE0YWztzn37XUbr3Q5OKu_4P_EM4jQ"
-
-
-# ---------- Request Model ----------
-class CommentRequest(BaseModel):
-    comment: str = Field(..., min_length=1)
+# ⚠️ HARDCODED TOKEN (rotate after assignment)
+AIPIPE_TOKEN = "YOUR_TOKEN_HERE"
 
 
 # ---------- Response Model ----------
@@ -29,13 +25,14 @@ class SentimentResponse(BaseModel):
     rating: int
 
 
-@app.post("/comment", response_model=SentimentResponse)
-async def analyze_comment(data: CommentRequest):
+# 🔥 CORE FUNCTION — handles ANY input format
+async def process_text(data: dict):
     try:
-        # ✅ Accept both fields
-        text = data.comment or data.code
+        # ✅ Evaluator may send {comment: "..."} OR {code: "..."}
+        text = data.get("comment") or data.get("code")
+
         if not text:
-            raise HTTPException(status_code=400, detail="No input provided")
+            raise HTTPException(status_code=400, detail="No input text found")
 
         url = "https://aipipe.org/openrouter/v1/responses"
 
@@ -66,6 +63,7 @@ Return format:
 
         response_json = r.json()
 
+        # 🔎 Extract model output safely
         output_text = None
         if "output" in response_json:
             for item in response_json["output"]:
@@ -77,14 +75,19 @@ Return format:
         if not output_text:
             raise HTTPException(status_code=500, detail="No text output")
 
-        result = json.loads(output_text)
-        return result
+        return json.loads(output_text)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ✅ Main endpoint
+@app.post("/comment", response_model=SentimentResponse)
+async def analyze_comment(data: dict = Body(...)):
+    return await process_text(data)
+
+
+# ✅ Evaluator endpoint (IMPORTANT)
 @app.post("/comment/code-interpreter", response_model=SentimentResponse)
-async def analyze_comment_ci(data: CommentRequest):
-    return await analyze_comment(data)
-
-
+async def analyze_comment_ci(data: dict = Body(...)):
+    return await process_text(data)
